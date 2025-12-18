@@ -4,7 +4,7 @@ import GamePlay from "./GamePlay";
 import GameOver from "./GameOver";
 import GameLoading from "./GameLoading";
 
-// 1. 게임 상태를 위한 타입 정의 (오타 방지용)
+// 1. 게임 상태를 위한 타입 정의
 type GameState = "intro" | "playing" | "result" | "loading";
 
 export default function RunningGame() {
@@ -18,7 +18,7 @@ export default function RunningGame() {
     <div className="running-game-container">
       {/* 1. Intro에서 시작 버튼 누르면 -> Loading으로 이동 */}
       {gameState === "intro" && (
-        <GameIntro onStart={() => setGameState("loading")} />
+        <GameIntro onStart={() => setGameState("playing")} />
       )}
 
       {/* 2. Loading이 끝나면 -> Playing으로 이동 */}
