@@ -2,31 +2,53 @@ import type { Judge } from "../types/game";
 
 type Props = {
   judge: Judge | null;
-  deltaMs: number | null;
 };
 
-export default function JudgeText({ judge, deltaMs }: Props) {
-  if (!judge) return null;
+// 이미지 파일 경로 헬퍼 함수
+const getImagePath = (filename: string): string => {
+  return new URL(`../assets/image/${filename}`, import.meta.url).href;
+};
 
-  const deltaLabel =
-    deltaMs === null ? "" : `${deltaMs > 0 ? "+" : ""}${deltaMs}ms`;
+// 판정별 이미지 경로
+const getJudgeImage = (judge: Judge): string => {
+  const judgeImages: Record<Judge, string> = {
+    Perfect: "perpect2.png",
+    Good: "good2.png",
+    Miss: "miss2.png",
+  };
+  return getImagePath(judgeImages[judge]);
+};
+
+export default function JudgeText({ judge }: Props) {
+  if (!judge) return null;
 
   return (
     <div
       style={{
         position: "absolute",
-        top: 10, // 필드 박스 안쪽 상단에 위치
+        top: 10,
         left: "50%",
         transform: "translateX(-50%)",
-        padding: "10px 14px",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.08)",
         zIndex: 10,
-        whiteSpace: "nowrap", // 텍스트가 줄바꿈되지 않도록
+        whiteSpace: "nowrap",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "8px",
       }}
     >
-      <div style={{ fontSize: 22, fontWeight: 800 }}>{judge}</div>
-      <div style={{ opacity: 0.85, marginTop: 4 }}>{deltaLabel}</div>
+      <img
+        src={getJudgeImage(judge)}
+        alt={judge}
+        style={{
+          width: "200px",
+          height: "auto",
+          imageRendering: "pixelated",
+          transform:
+            judge === "Good" || judge === "Miss" ? "scaleY(0.7)" : "none",
+          transformOrigin: "center",
+        }}
+      />
     </div>
   );
 }

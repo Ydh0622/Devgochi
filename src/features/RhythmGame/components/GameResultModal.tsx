@@ -9,7 +9,6 @@ type Props = {
 
 export default function GameResultModal({
   score,
-  combo,
   bestCombo,
   onRestart,
   onSelectMusic,
@@ -17,29 +16,45 @@ export default function GameResultModal({
 }: Props) {
   return (
     <div style={overlayStyle}>
-      <div style={modalStyle}>
-        <h2 style={titleStyle}>게임 종료</h2>
-        
-        <div style={resultContainerStyle}>
-          <div style={resultItemStyle}>
+      <div style={modalStyle} className="game-result-box">
+        <h2 style={titleStyle}>SYSTEM CLEAR</h2>
+
+        <div style={resultContainerStyle} className="score-report">
+          <div style={resultItemStyle} className="score-row">
             <div style={resultLabelStyle}>Score</div>
-            <div style={resultValueStyle}>{score.toLocaleString()}</div>
+            <div style={resultValueStyle} className="score-value">
+              {score.toLocaleString()}
+            </div>
           </div>
-          <div style={resultItemStyle}>
+          <div style={resultItemStyle} className="score-row">
             <div style={resultLabelStyle}>Best Combo</div>
-            <div style={resultValueStyle}>{bestCombo}</div>
+            <div style={resultValueStyle} className="score-value">
+              {bestCombo}
+            </div>
           </div>
         </div>
 
         <div style={buttonGroupStyle}>
-          <button onClick={onRestart} style={buttonStyle}>
+          <button
+            onClick={onRestart}
+            className="game-result-button"
+            style={buttonStyle}
+          >
             Restart
           </button>
-          <button onClick={onSelectMusic} style={buttonStyle}>
-            음악 선택
+          <button
+            onClick={onSelectMusic}
+            className="game-result-button"
+            style={buttonStyle}
+          >
+            MUSIC SELECT
           </button>
-          <button onClick={onGoHome} style={buttonStyle}>
-            홈으로
+          <button
+            onClick={onGoHome}
+            className="game-result-button"
+            style={buttonStyle}
+          >
+            HOME
           </button>
         </div>
       </div>
@@ -53,66 +68,81 @@ const overlayStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  background: "rgba(0, 0, 0, 0.7)",
+  width: "100%",
+  height: "100vh",
+  backgroundColor: "#1a1a05",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
+  alignItems: "center",
+  fontFamily: "'Courier New', Courier, monospace",
   zIndex: 1000,
 };
 
 const modalStyle: React.CSSProperties = {
-  background: "white",
-  borderRadius: 20,
-  padding: "40px 50px",
-  minWidth: 300,
+  backgroundColor: "rgba(20, 20, 0, 0.9)",
+  border: "2px solid #ffcc00",
+  padding: "40px",
   textAlign: "center",
+  boxShadow: "0 0 30px rgba(255, 204, 0, 0.4)",
+  maxWidth: "500px",
+  width: "90%",
+  animation: "shake 0.5s ease-out",
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 800,
-  marginBottom: 30,
+  color: "#ffcc00",
+  fontSize: "3rem",
+  margin: "0 0 30px 0",
+  textShadow: "2px 2px 0px #554400",
+  letterSpacing: "-2px",
+  fontFamily: "inherit",
 };
 
 const resultContainerStyle: React.CSSProperties = {
-  marginBottom: 30,
+  borderTop: "1px dashed #ffcc00",
+  borderBottom: "1px dashed #ffcc00",
+  padding: "20px 0",
+  marginBottom: "20px",
   display: "flex",
   flexDirection: "column",
-  gap: 20,
+  gap: "10px",
 };
 
 const resultItemStyle: React.CSSProperties = {
   display: "flex",
-  flexDirection: "column",
-  gap: 8,
+  justifyContent: "space-between",
+  color: "#fff",
+  fontSize: "1.2rem",
+  margin: "10px 0",
 };
 
 const resultLabelStyle: React.CSSProperties = {
-  fontSize: 14,
-  opacity: 0.7,
+  fontSize: "1.2rem",
+  color: "#fff",
   fontWeight: 600,
 };
 
 const resultValueStyle: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 800,
-  color: "#333",
+  fontSize: "1.2rem",
+  fontWeight: "bold",
+  color: "#ffccaa",
 };
 
 const buttonGroupStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 12,
+  gap: "12px",
 };
 
 const buttonStyle: React.CSSProperties = {
-  padding: "14px 24px",
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.15)",
-  background: "rgba(0,0,0,0.05)",
-  fontWeight: 700,
+  backgroundColor: "#ffcc00",
+  color: "#000",
+  border: "none",
+  padding: "15px 30px",
+  fontSize: "1.2rem",
+  fontWeight: "bold",
+  fontFamily: "inherit",
   cursor: "pointer",
-  fontSize: 16,
+  boxShadow: "0 0 15px rgba(255, 204, 0, 0.6)",
   transition: "all 0.2s",
 };
-

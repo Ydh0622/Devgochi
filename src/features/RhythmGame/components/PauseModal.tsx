@@ -14,19 +14,35 @@ export default function PauseModal({
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={titleStyle}>일시정지</h2>
+        <h2 style={titleStyle}>SYSTEM STOP</h2>
         <div style={buttonGroupStyle}>
-          <button onClick={onResume} style={buttonStyle}>
-            계속하기
+          <button
+            onClick={onResume}
+            className="pause-modal-button"
+            style={buttonStyle}
+          >
+            CONTINUE
           </button>
-          <button onClick={onRestart} style={buttonStyle}>
+          <button
+            onClick={onRestart}
+            className="pause-modal-button"
+            style={buttonStyle}
+          >
             Restart
           </button>
-          <button onClick={onSelectMusic} style={buttonStyle}>
-            음악 선택
+          <button
+            onClick={onSelectMusic}
+            className="pause-modal-button"
+            style={buttonStyle}
+          >
+            MUSIC SELECT
           </button>
-          <button onClick={onGoHome} style={buttonStyle}>
-            홈으로
+          <button
+            onClick={onGoHome}
+            className="pause-modal-button"
+            style={buttonStyle}
+          >
+            HOME
           </button>
         </div>
       </div>
@@ -40,40 +56,51 @@ const overlayStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  background: "rgba(0, 0, 0, 0.7)",
+  width: "100%",
+  height: "100vh",
+  backgroundColor: "#1a0505",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
+  alignItems: "center",
+  fontFamily: "'Courier New', Courier, monospace",
   zIndex: 1000,
 };
 
 const modalStyle: React.CSSProperties = {
-  background: "white",
-  borderRadius: 20,
-  padding: "40px 50px",
-  minWidth: 300,
+  backgroundColor: "rgba(20, 0, 0, 0.9)",
+  border: "2px solid #ff3333",
+  padding: "40px",
   textAlign: "center",
+  boxShadow: "0 0 30px rgba(255, 51, 51, 0.4)",
+  maxWidth: "500px",
+  width: "90%",
+  animation: "shake 0.5s ease-out",
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 800,
-  marginBottom: 30,
+  color: "#ff3333",
+  fontSize: "3rem",
+  margin: "0 0 30px 0",
+  textShadow: "2px 2px 0px #550000",
+  letterSpacing: "-2px",
+  fontFamily: "inherit",
 };
 
 const buttonGroupStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 12,
+  gap: "12px",
 };
 
 const buttonStyle: React.CSSProperties = {
-  padding: "14px 24px",
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.15)",
-  background: "rgba(0,0,0,0.05)",
-  fontWeight: 700,
+  backgroundColor: "#ff3333",
+  color: "#000",
+  border: "none",
+  padding: "15px 30px",
+  fontSize: "1.2rem",
+  fontWeight: "bold",
+  fontFamily: "inherit",
   cursor: "pointer",
-  fontSize: 16,
+  boxShadow: "0 0 15px rgba(255, 51, 51, 0.6)",
   transition: "all 0.2s",
 };

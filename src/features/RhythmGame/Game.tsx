@@ -3,7 +3,6 @@ import { useNavigate } from "react-router";
 import type { Judge, Note, LaneIndex } from "./types/game";
 import type { Music } from "./types/music";
 import { judgeHit, JUDGE_WINDOWS } from "./utils/judge";
-import ScoreBoard from "./components/ScoreBoard";
 import JudgeText from "./components/JudgeText";
 import MusicSelect from "./components/MusicSelect";
 import PauseModal from "./components/PauseModal";
@@ -15,11 +14,15 @@ const getAudioPath = (filename: string): string => {
   return new URL(`./assets/audio/${filename}`, import.meta.url).href;
 };
 
+// 이미지 파일 경로 헬퍼 함수
+const getImagePath = (filename: string): string => {
+  return new URL(`./assets/image/${filename}`, import.meta.url).href;
+};
+
 // 노트가 화면 위에서 히트라인까지 내려오는 데 걸리는 시간(연출 속도)
 const TRAVEL_MS = 1800;
 
-// 시각화 높이(히트라인 위치)
-const HIT_Y = 320;
+// 노트 시작 위치
 const START_Y = 20;
 
 // 레인 설정
@@ -34,6 +37,7 @@ const LANE_KEYS: Record<string, LaneIndex> = {
 export default function Game() {
   const navigate = useNavigate();
   const rafId = useRef<number | null>(null);
+  const fieldRef = useRef<HTMLDivElement | null>(null);
 
   // Web Audio API 관련 refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -69,7 +73,9 @@ export default function Game() {
   const [bestCombo, setBestCombo] = useState(0);
 
   const [lastJudge, setLastJudge] = useState<Judge | null>(null);
-  const [lastDelta, setLastDelta] = useState<number | null>(null);
+
+  // 각 레인의 빛나는 효과 상태
+  const [activeLanes, setActiveLanes] = useState<Set<LaneIndex>>(new Set());
 
   // 게임 종료 결과 모달 표시 여부
   const [showResultModal, setShowResultModal] = useState(false);
@@ -116,7 +122,7 @@ export default function Game() {
             return merged;
           });
         }
-      } catch (error) {
+      } catch {
         // JSON 파일이 없어도 에러 무시
         console.log("JSON 파일을 로드할 수 없습니다.");
       }
@@ -126,11 +132,14 @@ export default function Game() {
   }, []);
 
   // 각 레인별로 다음 노트 찾기
-  const getNextNote = (lane: LaneIndex): Note | null => {
-    const idx = laneIndices[lane];
-    const laneNotes = notes.filter((n) => n.lane === lane);
-    return laneNotes[idx] ?? null;
-  };
+  const getNextNote = useCallback(
+    (lane: LaneIndex): Note | null => {
+      const idx = laneIndices[lane];
+      const laneNotes = notes.filter((n) => n.lane === lane);
+      return laneNotes[idx] ?? null;
+    },
+    [laneIndices, notes]
+  );
 
   // 게임 종료 조건: 오디오가 끝났을 때 (노트를 다 쳐도 오디오가 끝날 때까지 계속)
   const ended = audioEnded;
@@ -139,7 +148,9 @@ export default function Game() {
   useEffect(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (
-        window.AudioContext || (window as any).webkitAudioContext
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext
       )();
     }
 
@@ -148,7 +159,7 @@ export default function Game() {
       if (sourceNodeRef.current) {
         try {
           sourceNodeRef.current.stop();
-        } catch (e) {
+        } catch {
           // 이미 정지된 경우 무시
         }
         sourceNodeRef.current = null;
@@ -210,7 +221,6 @@ export default function Game() {
     setCombo(0);
     setBestCombo(0);
     setLastJudge(null);
-    setLastDelta(null);
     setCountdown(null);
     setAudioEnded(false); // 오디오 종료 플래그 초기화
     setShowResultModal(false); // 결과 모달 닫기
@@ -222,7 +232,7 @@ export default function Game() {
     if (sourceNodeRef.current) {
       try {
         sourceNodeRef.current.stop();
-      } catch (e) {
+      } catch {
         // 이미 정지된 경우 무시
       }
       sourceNodeRef.current.disconnect();
@@ -252,7 +262,6 @@ export default function Game() {
     setCombo(0);
     setBestCombo(0);
     setLastJudge(null);
-    setLastDelta(null);
     setCountdown(null);
     setAudioEnded(false); // 오디오 종료 플래그 초기화
     if (rafId.current) cancelAnimationFrame(rafId.current);
@@ -263,7 +272,7 @@ export default function Game() {
     if (sourceNodeRef.current) {
       try {
         sourceNodeRef.current.stop();
-      } catch (e) {
+      } catch {
         // 이미 정지된 경우 무시
       }
       sourceNodeRef.current.disconnect();
@@ -447,7 +456,7 @@ export default function Game() {
         sourceNodeRef.current.onended = null;
         try {
           sourceNodeRef.current.stop();
-        } catch (e) {
+        } catch {
           // 이미 정지된 경우 무시
         }
         sourceNodeRef.current.disconnect();
@@ -584,7 +593,7 @@ export default function Game() {
     } catch (error) {
       console.error("오디오 재개 실패:", error);
     }
-  }, [selectedMusic]);
+  }, [selectedMusic, audioEnded, isPaused, isPlaying]);
 
   const restart = () => {
     reset();
@@ -597,9 +606,8 @@ export default function Game() {
     navigate("/");
   };
 
-  const applyJudge = (judge: Judge, deltaMs: number) => {
+  const applyJudge = (judge: Judge) => {
     setLastJudge(judge);
-    setLastDelta(deltaMs);
 
     if (judge === "Perfect") {
       setScore((s) => s + 100);
@@ -643,7 +651,7 @@ export default function Game() {
 
       const missLine = nextNote.time + JUDGE_WINDOWS.good;
       if (nowMs > missLine) {
-        applyJudge("Miss", Math.round(nowMs - nextNote.time));
+        applyJudge("Miss");
         newIndices[lane]++;
         changed = true;
       }
@@ -652,7 +660,7 @@ export default function Game() {
     if (changed) {
       setLaneIndices(newIndices);
     }
-  }, [isPlaying, ended, nowMs, laneIndices]);
+  }, [isPlaying, ended, nowMs, laneIndices, isPaused, getNextNote]);
 
   // ✅ ESC 키로 일시정지
   useEffect(() => {
@@ -672,7 +680,7 @@ export default function Game() {
     };
 
     window.addEventListener("keydown", onKeyDown, { passive: false });
-    return () => window.removeEventListener("keydown", onKeyDown as any);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [isPlaying, isPaused, pause, resume]);
 
   // ✅ DFJK 키 입력 처리
@@ -683,6 +691,16 @@ export default function Game() {
       const lane = LANE_KEYS[e.code];
       if (lane === undefined) return;
       e.preventDefault();
+
+      // 키 입력 시 레인 빛나는 효과
+      setActiveLanes((prev) => new Set([...prev, lane]));
+      setTimeout(() => {
+        setActiveLanes((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(lane);
+          return newSet;
+        });
+      }, 150); // 150ms 후 효과 제거
 
       if (ended) return;
       if (startTime === null) return;
@@ -698,8 +716,8 @@ export default function Game() {
         return;
       }
 
-      const { judge, deltaMs } = judgeHit(nowMs, nextNote.time);
-      applyJudge(judge, deltaMs);
+      const { judge } = judgeHit(nowMs, nextNote.time);
+      applyJudge(judge);
 
       setLaneIndices((prev) => {
         const newIndices = [...prev] as [number, number, number, number];
@@ -709,8 +727,17 @@ export default function Game() {
     };
 
     window.addEventListener("keydown", onKeyDown, { passive: false });
-    return () => window.removeEventListener("keydown", onKeyDown as any);
-  }, [isPlaying, isPaused, startTime, nowMs, ended, laneIndices, speed]);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    isPlaying,
+    isPaused,
+    startTime,
+    nowMs,
+    ended,
+    laneIndices,
+    speed,
+    getNextNote,
+  ]);
 
   // ✅ 끝나면 정지 및 결과 모달 표시
   useEffect(() => {
@@ -726,7 +753,7 @@ export default function Game() {
       if (sourceNodeRef.current) {
         try {
           sourceNodeRef.current.stop();
-        } catch (e) {
+        } catch {
           // 이미 정지된 경우 무시
         }
         sourceNodeRef.current.disconnect();
@@ -744,7 +771,10 @@ export default function Game() {
     const travelMs = TRAVEL_MS / speed; // 배속에 따라 속도 조절
     const appearAt = noteTime - travelMs;
     const t = (nowMs - appearAt) / travelMs; // 0~1
-    return START_Y + t * (HIT_Y - START_Y);
+    // 필드 높이의 80% 지점을 히트라인으로 사용
+    const fieldHeight = fieldRef.current?.clientHeight || 800;
+    const hitY = fieldHeight * 0.8;
+    return START_Y + t * (hitY - START_Y);
   };
 
   // 음악 선택 화면
@@ -761,16 +791,18 @@ export default function Game() {
   }
 
   return (
-    <div style={{ textAlign: "center", position: "relative" }}>
-      <h2 style={{ margin: 0, fontSize: 28 }}>{selectedMusic.title}</h2>
-      {selectedMusic.artist && (
-        <div style={{ marginTop: 4, fontSize: 14, opacity: 0.7 }}>
-          {selectedMusic.artist}
-        </div>
-      )}
-
-      {/* 버튼 제거 - ESC 모달로만 조작 */}
-
+    <div
+      style={{
+        textAlign: "center",
+        position: "relative",
+        minHeight: "100vh",
+        backgroundImage: `url(${getImagePath("playbackground.png")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+      }}
+    >
       <Countdown count={countdown} />
 
       {isPaused && (
@@ -793,140 +825,247 @@ export default function Game() {
         />
       )}
 
-      <ScoreBoard score={score} combo={combo} bestCombo={bestCombo} />
-
-      {/* ✅ 게임 필드 */}
-      <div style={fieldStyle}>
-        <JudgeText judge={lastJudge} deltaMs={lastDelta} />
-        {/* 히트라인 */}
-        <div style={hitLineStyle}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>HIT LINE</span>
-        </div>
-
-        {/* 4개 레인 */}
-        {Array.from({ length: LANE_COUNT }).map((_, laneIdx) => {
-          const lane = laneIdx as LaneIndex;
-          const laneNotes = notes.filter((n) => n.lane === lane);
-          const currentIdx = laneIndices[lane];
-
-          return (
-            <div
-              key={lane}
-              style={{
-                ...laneStyle,
-                left: `${(lane / LANE_COUNT) * 100}%`,
-                width: `${100 / LANE_COUNT}%`,
-              }}
-            >
-              {/* 레인 라벨 */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: HIT_Y + 5,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  fontSize: 16,
-                  fontWeight: 800,
-                  opacity: 0.6,
-                }}
-              >
-                {["D", "F", "J", "K"][lane]}
-              </div>
-
-              {/* 노트 렌더 */}
-              {laneNotes.map((note, i) => {
-                // 이미 처리된 노트는 렌더하지 않음
-                if (i < currentIdx) return null;
-
-                const y = getNoteY(note.time);
-
-                // 화면 안에 보이는 구간만 그리기
-                if (y < -30 || y > HIT_Y + 80) return null;
-
-                const isNext = i === currentIdx;
-
-                return (
-                  <div
-                    key={`${note.time}-${lane}-${i}`}
-                    style={{
-                      ...noteStyle,
-                      left: "50%",
-                      transform: `translate(-50%, ${y}px)`,
-                      opacity: isNext ? 1 : 0.75,
-                    }}
-                  />
-                );
-              })}
+      {/* 좌측 정보 패널 */}
+      <div style={infoPanelStyle}>
+        {selectedMusic && (
+          <>
+            <div style={infoItemStyle}>
+              <span style={infoLabelStyle}>Title:</span>{" "}
+              <span style={infoValueStyle}>{selectedMusic.title}</span>
             </div>
-          );
-        })}
-
-        {/* 안내 */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 10,
-            left: 0,
-            right: 0,
-            fontSize: 12,
-            opacity: 0.8,
-          }}
-        >
-          D, F, J, K 키로 타이밍 맞추기
+            {selectedMusic.artist && (
+              <div style={infoItemStyle}>
+                <span style={infoLabelStyle}>Artist:</span>{" "}
+                <span style={infoValueStyle}>{selectedMusic.artist}</span>
+              </div>
+            )}
+          </>
+        )}
+        <div style={infoItemStyle}>
+          <span style={infoLabelStyle}>Score:</span>{" "}
+          <span style={infoValueStyle}>{score.toLocaleString()}</span>
+        </div>
+        <div style={infoItemStyle}>
+          <span style={infoLabelStyle}>Best Combo:</span>{" "}
+          <span style={infoValueStyle}>{bestCombo}</span>
         </div>
       </div>
 
-      <div style={{ marginTop: 10, opacity: 0.75 }}>
-        {isPlaying ? (
-          <>
-            Time: <b>{Math.floor(nowMs)}ms</b>
-          </>
-        ) : (
-          <span>{ended ? "Finished" : "Idle"}</span>
-        )}
+      {/* ✅ 게임 필드 - 중앙 배치 */}
+      <div style={fieldContainerStyle}>
+        <div ref={fieldRef} style={fieldStyle}>
+          <JudgeText judge={lastJudge} />
+
+          {/* 콤보 표시 - 상단 20% 지점 */}
+          {combo > 0 && (
+            <div style={comboStyle}>
+              <div style={comboNumberStyle}>{combo}</div>
+              <div style={comboLabelStyle}>COMBO</div>
+            </div>
+          )}
+
+          {/* 히트라인 */}
+          <div style={hitLineStyle} />
+
+          {/* 4개 레인 */}
+          {Array.from({ length: LANE_COUNT }).map((_, laneIdx) => {
+            const lane = laneIdx as LaneIndex;
+            const laneNotes = notes.filter((n) => n.lane === lane);
+            const currentIdx = laneIndices[lane];
+            const isActive = activeLanes.has(lane);
+
+            return (
+              <div
+                key={lane}
+                style={{
+                  ...laneStyle,
+                  left: `${(lane / LANE_COUNT) * 100}%`,
+                  width: `${100 / LANE_COUNT}%`,
+                  boxShadow: isActive
+                    ? "inset 0 0 50px rgba(135, 206, 250, 0.4), 0 0 30px rgba(135, 206, 250, 0.3)"
+                    : "none",
+                  transition: "box-shadow 0.1s ease-out",
+                }}
+              >
+                {/* 레인 라벨 - 키 이미지 */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(80% + 5px)",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "60px",
+                    height: "60px",
+                    backgroundImage: `url(${getImagePath(
+                      `lane_${["D", "F", "J", "K"][lane]}key.png`
+                    )})`,
+                    backgroundSize: "contain",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                />
+
+                {/* 노트 렌더 */}
+                {laneNotes.map((note, i) => {
+                  // 이미 처리된 노트는 렌더하지 않음
+                  if (i < currentIdx) return null;
+
+                  const y = getNoteY(note.time);
+
+                  // 화면 안에 보이는 구간만 그리기
+                  const fieldHeight = fieldRef.current?.clientHeight || 800;
+                  const hitY = fieldHeight * 0.8;
+                  if (y < -30 || y > hitY + 80) return null;
+
+                  const isNext = i === currentIdx;
+
+                  return (
+                    <div
+                      key={`${note.time}-${lane}-${i}`}
+                      style={{
+                        ...noteStyle,
+                        left: "50%",
+                        transform: `translate(-50%, ${y}px)`,
+                        opacity: isNext ? 1 : 0.75,
+                        backgroundImage: `url(${getNoteImage(lane)})`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
+const fieldContainerStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+};
+
 const fieldStyle: React.CSSProperties = {
   position: "relative",
-  width: 420,
-  maxWidth: "92vw",
-  height: 380,
-  margin: "18px auto 0",
-  borderRadius: 18,
+  width: "min(420px, 92vw)",
+  height: "100vh",
+  margin: "0 auto",
+  borderRadius: 0,
   border: "1px solid rgba(0,0,0,0.12)",
-  background: "linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.06))",
+  backgroundImage: `url(${getImagePath("laneline3.png")})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
   overflow: "hidden",
+};
+
+const infoPanelStyle: React.CSSProperties = {
+  position: "absolute",
+  left: "2vw",
+  top: "2vh",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1vh",
+  zIndex: 100,
+  maxWidth: "calc((100vw - min(420px, 92vw)) / 2 - 2vw)",
+};
+
+const infoItemStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "0.5vw",
+  fontSize: "clamp(20px, 3vw, 40px)",
+  color: "#fff",
+  textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5)",
+};
+
+const infoLabelStyle: React.CSSProperties = {
+  fontWeight: 700,
+  color: "#ffffff",
+  textShadow:
+    "2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.3)",
+};
+
+const infoValueStyle: React.CSSProperties = {
+  fontWeight: 800,
+  color: "#ffffff",
+  textShadow:
+    "2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.3)",
 };
 
 const laneStyle: React.CSSProperties = {
   position: "absolute",
   top: 0,
   bottom: 0,
-  borderLeft: "1px dashed rgba(0,0,0,0.12)",
-  borderRight: "1px dashed rgba(0,0,0,0.12)",
+  backgroundImage: `url(${getImagePath("laneline2.png")})`,
+  backgroundSize: "95% 100%",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
 };
 
 const hitLineStyle: React.CSSProperties = {
   position: "absolute",
   left: 0,
   right: 0,
-  top: HIT_Y,
-  height: 2,
-  background: "rgba(0,0,0,0.25)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  top: "80%",
+  height: "4px",
+  backgroundColor: "rgba(0, 191, 255, 0.7)",
+  boxShadow:
+    "0 0 10px rgba(0, 191, 255, 1), " +
+    "0 0 20px rgba(0, 191, 255, 0.8), " +
+    "0 0 30px rgba(0, 191, 255, 0.6), " +
+    "0 0 40px rgba(0, 191, 255, 0.4)",
   zIndex: 10,
+  backdropFilter: "blur(1px)",
+};
+
+// 레인별 노트 이미지 경로
+const getNoteImage = (lane: LaneIndex): string => {
+  const noteImages = ["Dnote.png", "Fnote.png", "Jnote.png", "Knote.png"];
+  return getImagePath(noteImages[lane]);
 };
 
 const noteStyle: React.CSSProperties = {
   position: "absolute",
   top: 0,
   width: 64,
-  height: 18,
-  borderRadius: 999,
-  background: "rgba(0,0,0,0.65)",
+  height: 64,
+  backgroundSize: "contain",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+};
+
+const comboStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "15%",
+  left: "50%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 50,
+};
+
+const comboNumberStyle: React.CSSProperties = {
+  fontSize: "120px",
+  fontWeight: 900,
+  color: "rgba(135, 206, 250, 0.5)",
+  textShadow:
+    "0 0 20px rgba(135, 206, 250, 0.6), " +
+    "0 0 40px rgba(135, 206, 250, 0.4), " +
+    "0 0 60px rgba(135, 206, 250, 0.3)",
+  lineHeight: 1,
+  fontFamily: "Arial, sans-serif",
+};
+
+const comboLabelStyle: React.CSSProperties = {
+  fontSize: "24px",
+  fontWeight: 700,
+  color: "rgba(135, 206, 250, 0.4)",
+  textShadow: "0 0 10px rgba(135, 206, 250, 0.3)",
+  letterSpacing: "4px",
+  marginTop: "8px",
 };
