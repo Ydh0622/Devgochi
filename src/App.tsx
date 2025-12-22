@@ -1,6 +1,6 @@
 import "./App.css";
 import { Routes, Route } from "react-router";
-import Home from "@/pages/Home";
+import Home from "@/features/Home/Home";
 import RunningGame from "./features/RunningGame";
 
 function App() {
