@@ -9,5 +9,11 @@ html, body {
   overflow: hidden;
 }
 
+@font-face {
+  font-family: "Galmuri11";
+  font-weight: bold;
+  src: url("./features/RunningGame/fonts/Galmuri11_Bold.ttf") format("truetype");
+}
+
 body {
 }

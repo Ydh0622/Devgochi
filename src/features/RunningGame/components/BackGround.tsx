@@ -1,6 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import bg from "../assets/background.png";
-import bottomBg from "../assets/background-bottom.png"; 
+import bottomBg from "../assets/background-bottom.png";
+import React from "react";
 
 // 1. 애니메이션 (2500px 이동)
 // 이렇게 애니메이션을 주면 2500px만큼 이동하고 다시 0지점으로 되돌려 무한 스크롤처럼 보이게 한다.
@@ -90,4 +91,4 @@ const Background = () => {
   0;
 };
 
-export default Background;
+export default React.memo(Background);
