@@ -13,9 +13,9 @@ const Tab = styled.div`
   width: 100%;
   height: 80px;
   background-color: #bfbfbf;
-  border-top: 4px solid #ffffff; 
+  border-top: 4px solid #ffffff;
   z-index: 1;
-  justify-content: space-around; 
+  justify-content: space-around;
   align-items: center;
   color: white;
   font-weight: bold;
@@ -25,13 +25,8 @@ function BottomTab() {
   return (
     <Tab>
       <RetroButton moveTo={"/run"} label={"RUNNING MAN"} image={Running} />
-<<<<<<< HEAD
-      <RetroButton moveTo={"/RhythmGame"} label={"RHYTHM GAME"} image={Rhythm} />
+      <RetroButton moveTo={"/rhythm"} label={"RHYTHM GAME"} image={Rhythm} />
       <RetroButton moveTo={"/BugHunter"} label={"BUG HUNTER"} image={Bug} />
-=======
-      <RetroButton moveTo={"/run"} label={"RHYTHM GAME"} image={Rhythm} />
-      <RetroButton moveTo={"/run"} label={"BUG HUNTER"} image={Bug} />
->>>>>>> 2514374e271cb4d5c5b52d54a3bce2817f15f295
     </Tab>
   );
 }

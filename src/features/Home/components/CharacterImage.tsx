@@ -1,11 +1,11 @@
-import LV1 from "@/features/Home/assets/images/LV1.png";
+import LV1 from "@/features/Home/assets/images/LV1.gif";
 import LV2 from "@/features/Home/assets/images/LV2.png";
 import LV3 from "@/features/Home/assets/images/LV3.png";
 import LV4 from "@/features/Home/assets/images/LV4.png";
 import LV5 from "@/features/Home/assets/images/LV5.png";
 import { getLocalStorage } from "@/shared/localStorage";
 import styled from "styled-components";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const CharacterContainer = styled.div`
   display: flex;
@@ -19,11 +19,10 @@ const CharacterSize = styled.img`
 `;
 
 function CharacterImage() {
-  let [level, setLevel] = useState(0);
-  useEffect(() => {
-    const storedLevel = Number(getLocalStorage("level")) || 0;
-    setLevel(storedLevel);
-  }, []);
+  const [level] = useState<number>(() => {
+    const storedLevel = Number(getLocalStorage("level"));
+    return storedLevel || 0;
+  });
 
   const chooseImage = () => {
     switch (level) {
