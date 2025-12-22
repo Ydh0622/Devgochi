@@ -1,25 +1,26 @@
 import { useState, useEffect } from "react";
 import "./GameIntro.css";
 
-// 1. Props 타입 정의
+// 1. Props 타입 정의: 부모에게 받을 데이터의 모양
 interface GameIntroProps {
-  onStart: () => void;
+  onStart: () => void; // 매개변수 없고, 반환값도 없는 함수
 }
 
-// 2. 기록 데이터의 모양 정의
+// 2. 기록 데이터의 모양 정의 (객체 구조)
 interface GameRecord {
   score: number;
   date: string;
 }
 
+// 컴포넌트 함수 옆에 : React.FC<Props타입> 을 붙이거나, 매개변수 옆에 붙입니다.
 const GameIntro = ({ onStart }: GameIntroProps) => {
-  // 💡 해결 방법: showHelpModal을 사용하지 않으므로 일단 주석 처리하거나,
-  // 아래 return문에서 실제로 사용해야 합니다. 빌드 통과를 위해 주석 처리합니다.
-  // const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
+  // records는 GameRecord 객체들의 배열([])이라고 알려줍니다.
   const [records, setRecords] = useState<GameRecord[]>([]);
 
   useEffect(() => {
+    // 더미 데이터도 타입에 맞춰서 작성
     const dummyRecords: GameRecord[] = [
       { score: 12500, date: "23.12.10" },
       { score: 8900, date: "23.12.11" },
@@ -47,6 +48,7 @@ const GameIntro = ({ onStart }: GameIntroProps) => {
             {records.map((record, index) => (
               <li key={index} className="record-item">
                 <span className="rank">RANK 0{index + 1}</span>
+                {/* 숫자에 toLocaleString() 자동완성이 잘 뜰 겁니다 */}
                 <span className="score">
                   {record.score.toLocaleString()} PTS
                 </span>
@@ -63,14 +65,16 @@ const GameIntro = ({ onStart }: GameIntroProps) => {
         <div className="button-group-container">
           <button
             className="cyber-button help-button"
-            // onClick={() => setShowHelpModal(true)} // 상태를 안 쓰므로 일단 로그만 찍게 수정
-            onClick={() => console.log("Help clicked")}
+            onClick={() => setShowHelpModal(true)}
           >
             <span className="btn-text">SYSTEM HELP</span>
             <span className="btn-glitch-effect"></span>
           </button>
 
-          <button className="cyber-button start-button" onClick={onStart}>
+          <button
+            className="cyber-button start-button"
+            onClick={onStart} // 타입이 맞으므로 에러 없음
+          >
             <span className="btn-text">MISSION START</span>
             <span className="btn-glitch-effect"></span>
           </button>
