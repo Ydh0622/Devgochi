@@ -13,36 +13,6 @@ const WindowContainer = styled.div`
   font-family: "Courier New", Courier, monospace;
 `;
 
-const TitleBar = styled.div`
-  background: #000080;
-  color: white;
-  padding: 3px 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  font-size: 14px;
-`;
-
-const WindowButtons = styled.div`
-  display: flex;
-  gap: 2px;
-`;
-
-const SmallButton = styled.div`
-  width: 16px;
-  height: 14px;
-  background: #c0c0c0;
-  border: 1px solid;
-  border-color: #ffffff #808080 #808080 #ffffff;
-  color: black;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-`;
-
 const Content = styled.div`
   padding: 20px;
   display: flex;
