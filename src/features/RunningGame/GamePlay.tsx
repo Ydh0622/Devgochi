@@ -3,9 +3,24 @@ import Character from "./components/Character";
 import Obstacle from "./components/Obstacle";
 // import Item from './components/Item';
 import Background from "./components/BackGround";
-
+import wifi3 from "./assets/wifi3.png"; // 꽉 찬 신호
+import wifi2 from "./assets/wifi2.png"; // 중간 신호
+import wifi1 from "./assets/wifi1.png"; // 약한 신호
 import styled from "styled-components";
+import { motion } from "framer-motion";
 
+// Props 타입 정의
+const wifiImages: Record<number, string> = {
+  3: wifi3,
+  2: wifi2,
+  1: wifi1,
+};
+
+interface GamePlayProps {
+  onGameOver: (finalScore: number) => void;
+}
+
+// 스타일 정의
 const GameContainer = styled.div`
   width: 100%;
   height: 100vh;
@@ -13,9 +28,32 @@ const GameContainer = styled.div`
   cursor: pointer;
   overflow: hidden;
 `;
-interface GamePlayProps {
-  onGameOver: (finalScore: number) => void;
-}
+
+const UIHeader = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 100;
+  box-sizing: border-box;
+`;
+
+const HeartContainer = styled(motion.img)`
+  width: 100px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px #00ff737e) drop-shadow(0 0 6px #00ff737e);
+`;
+
+const ScoreBoard = styled.div`
+  font-family: "Galmuri11";
+  font-size: 2rem;
+  color: white;
+`;
 
 // onGameOver로 finalScore 값을 부모로 넘겨줘야함
 const GamePlay = ({ onGameOver }: GamePlayProps) => {
@@ -48,7 +86,7 @@ const GamePlay = ({ onGameOver }: GamePlayProps) => {
     // 캐릭터 애니메이션 시간(0.5s)과 똑같이 맞춰서 false로 되돌림
     setTimeout(() => {
       setIsJumping(false);
-    }, 700);
+    }, 500);
   }, [isJumping]); // isJumping이 바뀔 때만 함수 갱신
 
   // 스페이스바 눌렀을 때 점프하도록 window 객체에 이벤트 리스너 등록하기
@@ -150,16 +188,40 @@ const GamePlay = ({ onGameOver }: GamePlayProps) => {
   return (
     <GameContainer onClick={jump}>
       <Background /> {/* 배경은 ref 필요 없음 */}
-      {/* 2. UI 요소 (화면 맨 위) */}
-      {/* <UIHeader>
-       <HeartContainer>...</HeartContainer>
-       <ScoreBoard>...</ScoreBoard>
-    </UIHeader> */}
+      {/* 스코어와 생명 */}
+      <UIHeader>
+        <HeartContainer
+          key={hearts}
+          src={wifiImages[hearts]}
+          alt="wifi-signal"
+          // 애니메이션 설정
+          initial={{
+            scale: 1.3,
+            x: 0,
+            filter: "brightness(2) sepia(1) saturate(5)",
+          }}
+          animate={{
+            scale: 1,
+            x: 0,
+            filter:
+              "drop-shadow(0 0 3px #26ff007d) drop-shadow(0 0 6px #26ff007d)",
+          }} // 원래대로
+          transition={{ type: "spring", stiffness: 300, damping: 10 }}
+          // 흔들리는 효과 (keyframes)
+          whileInView={{
+            x: [0, -5, 5, -5, 5, 0], // 좌우로 흔들림
+            transition: { duration: 0.4 },
+          }}
+        ></HeartContainer>
+        <ScoreBoard>Data: {score}KB</ScoreBoard>
+      </UIHeader>
+      {/* 캐릭터 */}
       <Character
         ref={playerRef}
         isJumping={isJumping}
         isInvincible={isInvincible}
       />
+      {/* 장애물 */}
       <Obstacle ref={obstacleRef} />
       {/*<Item ... /> */}
     </GameContainer>

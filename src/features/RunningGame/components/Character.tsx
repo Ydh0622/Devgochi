@@ -95,7 +95,7 @@ const CharacterDiv = styled.div<{
       animation:
         ${runAnimation} 0.4s steps(7) infinite,
         ${blinkAnimation} 0.2s infinite;
-      /* 흑백 처리까지 하면 더 '유령' 같음 */
+      /* 흑백 처리하기 */
       filter: grayscale(100%);
     `}
 `;

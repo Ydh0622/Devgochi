@@ -1,7 +1,6 @@
 import React, { forwardRef } from "react";
 import styled, { keyframes } from "styled-components";
 import obstacleImg from "../assets/Obstacle.png";
-import obstacleImg2 from "../assets/Obstacle2.png";
 
 // ------------------------------ 이미지 정의 ------------------------------
 // 이미지에 대한 계산을 하지 않으면 모니터 비율에 따라서 크기가 조정되지 않음
