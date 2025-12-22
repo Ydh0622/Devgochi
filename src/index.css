@@ -307,3 +307,18 @@
   transform: scale(1.05) !important;
   box-shadow: 0 0 25px rgba(255, 170, 0, 0.8) !important;
 }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@font-face {
+  font-family: "Galmuri11";
+  font-weight: bold;
+  src: url("./features/RunningGame/fonts/Galmuri11_Bold.ttf") format("truetype");
+}
+
