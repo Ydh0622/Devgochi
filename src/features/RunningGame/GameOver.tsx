@@ -10,6 +10,11 @@ interface GameOverProps {
   onRestart: () => void;
 }
 
+interface GameRecord {
+  score: number;
+  date: string;
+}
+
 // GameIntro와 거의 동일
 
 // --- 네온 효과를 주기위한 애니메이션 ---
@@ -104,7 +109,7 @@ const Overlay = styled.div`
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 0;
   }
 `;
@@ -233,55 +238,75 @@ const PixelButton = styled.button<{ $primary?: boolean }>`
 // --- 4. Logic & Component ---
 
 const GameOver = ({ score, onRestart }: GameOverProps) => {
-  // 최고 기록
-  const [bestScore, setBestScore] = useState<number>(0);
-  // 새로운 최고 기록
-  const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
-  // 계산된 경험치
-  const [gainedXp, setGainedXp] = useState<number>(0);
-  // 총 경험치
-  const [totalXp, setTotalXp] = useState<number>(0);
-  const isNewRef = useRef<boolean | null>(null);
-  const { gainExp } = useCharacter();
-  const isExpProcessedRef = useRef<boolean>(false);
   const navigate = useNavigate();
+  const { gainExp } = useCharacter();
+
+  // 중복 실행 방지
+  const isProcessedRef = useRef(false);
+
+  // [핵심] 컴포넌트 마운트 시 1회만 계산 및 상태 초기화
+  const [resultState] = useState(() => {
+    // 1. 기존 랭킹 불러오기 (없으면 빈 배열)
+    const savedRecordsJSON = localStorage.getItem("runningGameRecords");
+    const savedRecords: GameRecord[] = savedRecordsJSON
+      ? JSON.parse(savedRecordsJSON)
+      : [];
+
+    // 2. 현재 최고 점수 (비교용)
+    const previousBestScore =
+      savedRecords.length > 0 ? savedRecords[0].score : 0;
+
+    // 3. 오늘 날짜 포맷팅 (YY.MM.DD)
+    const today = new Date();
+    const formattedDate = `${today.getFullYear().toString().slice(2)}.${(
+      today.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}.${today.getDate().toString().padStart(2, "0")}`;
+
+    // 4. 새로운 랭킹 리스트 생성
+    const newRecord = { score, date: formattedDate };
+    // 기존 목록에 추가 -> 점수 내림차순 정렬
+    const updatedRecords = [...savedRecords, newRecord].sort(
+      (a, b) => b.score - a.score
+    );
+    // 상위 5개만 자르기
+    const top5Records = updatedRecords.slice(0, 5);
+
+    // 5. 신기록 여부 판별 (0번 인덱스가 나 자신이면서, 이전 최고점수보다 높을 때)
+    // 혹은 단순히 "현재 점수가 1등인지"만 확인해도 됨
+    const isNewRecord = score > previousBestScore;
+
+    // 6. 결과 객체 반환 (렌더링에 사용할 값들)
+    return {
+      xp: Math.floor(score * 0.1),
+      top5Records, // 로컬스토리지에 저장할 최종 리스트
+      bestScore: top5Records[0].score, // 현재 1등 점수
+      isNewRecord, // NEW 뱃지용
+    };
+  });
+
+  const [totalXp, setTotalXp] = useState(0);
 
   useEffect(() => {
-    // 경험치 가중치 계산
-    const xp = Math.floor(score * 0.1);
-    setGainedXp(xp);
+    if (!isProcessedRef.current) {
+      // 1. 로컬스토리지에 랭킹 저장 (Top 5)
+      localStorage.setItem(
+        "runningGameRecords",
+        JSON.stringify(resultState.top5Records)
+      );
 
-    // 최고 기록 가져오기
-    const savedBest = localStorage.getItem("runningGameBestScore");
-    const currentBest = savedBest ? parseInt(savedBest, 10) : 0;
-
-    // 최초 실행 시에만 새 기록 여부를 계산해 ref에 저장
-    // 이게 없으면 스트릭 모드 때문에 new 배지가 뜨지 않음
-    if (isNewRef.current === null) {
-      isNewRef.current = score > currentBest;
-    }
-
-    const isNew = Boolean(isNewRef.current);
-
-    if (isNew) {
-      setBestScore(score);
-      setIsNewRecord(true);
-      localStorage.setItem("runningGameBestScore", score.toString());
-    } else {
-      setBestScore(currentBest);
-      setIsNewRecord(false);
-    }
-
-    if (!isExpProcessedRef.current) {
-      // gainedXp state is updated asynchronously, so use local `xp` value
-      gainExp(xp);
+      // 2. 경험치 부여 및 토탈 경험치 계산
+      gainExp(resultState.xp);
       const savedTotalXP = localStorage.getItem("exp");
       const currentTotalXP = savedTotalXP ? parseInt(savedTotalXP, 10) : 0;
-      const newDisplayTotalXP = currentTotalXP + xp;
-      setTotalXp(newDisplayTotalXP);
-      isExpProcessedRef.current = true; // 처리 완료 플래그 세우기
+
+      // 화면 표시용 state 업데이트
+      setTotalXp(currentTotalXP);
+
+      isProcessedRef.current = true;
     }
-  }, [score]);
+  }, [resultState, gainExp]);
 
   return (
     <Overlay>
@@ -299,7 +324,7 @@ const GameOver = ({ score, onRestart }: GameOverProps) => {
               className="value"
               style={{ color: "#0f0", textShadow: "0 0 10px #0f0" }}
             >
-              +{gainedXp.toLocaleString()} XP
+              +{resultState.xp.toLocaleString()} XP
             </span>
           </ResultRow>
           <ResultRow>
@@ -309,17 +334,19 @@ const GameOver = ({ score, onRestart }: GameOverProps) => {
           <ResultRow $isHighlight={true}>
             <span className="label">BEST RECORD</span>
             <div style={{ display: "flex", alignItems: "center" }}>
-              <span className="value">{bestScore.toLocaleString()} PTS</span>
-              {isNewRecord && <NewRecordBadge>NEW!</NewRecordBadge>}
+              {/* 현재 저장된 랭킹 중 1등 점수 표시 */}
+              <span className="value">
+                {resultState.bestScore.toLocaleString()} PTS
+              </span>
+              {resultState.isNewRecord && <NewRecordBadge>NEW!</NewRecordBadge>}
             </div>
           </ResultRow>
         </ResultBox>
 
-        {/* 버튼 영역 */}
         <ButtonGroup>
           <PixelButton onClick={onRestart}>SYSTEM REBOOT</PixelButton>
           <PixelButton $primary onClick={() => navigate("/")}>
-            MISSION START
+            EXIT TO HOME
           </PixelButton>
         </ButtonGroup>
       </ContentWrapper>
@@ -328,4 +355,3 @@ const GameOver = ({ score, onRestart }: GameOverProps) => {
 };
 
 export default GameOver;
-

@@ -35,11 +35,11 @@ const jumpAnimation = keyframes`
     transform: translateY(0);         /* 바닥 */
   }
   40% { 
-    transform: translateY(-200px);    /* 정점 (빠르게 올라감) */
+    transform: translateY(-250px);    /* 정점 (빠르게 올라감) */
     animation-timing-function: ease-out; 
   }
   50% { 
-    transform: translateY(-200px);    /* 공중 체류 (잠깐 멈춤) */
+    transform: translateY(-250px);    /* 공중 체류 (잠깐 멈춤) */
   }
   100% { 
     transform: translateY(0);         /* 착지 (가속도 붙으며 내려옴) */

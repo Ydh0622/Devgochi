@@ -160,7 +160,7 @@ const BugHunter = () => {
       )}
 
       {status === "GameOver" && (
-        <GameOver score={score} onStart={handleStartButton} />
+        <GameOver score={score} onRestart={handleStartButton} />
       )}
     </div>
   );

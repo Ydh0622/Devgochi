@@ -25,7 +25,7 @@ function BottomTab() {
   return (
     <Tab>
       <RetroButton moveTo={"/run"} label={"RUNNING MAN"} image={Running} />
-      <RetroButton moveTo={"/rhythm"} label={"RHYTHM GAME"} image={Rhythm} />
+      <RetroButton moveTo={"/rhythm"} label={"RHYTHM CODE"} image={Rhythm} />
       <RetroButton moveTo={"/BugHunter"} label={"BUG HUNTER"} image={Bug} />
     </Tab>
   );

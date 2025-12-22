@@ -2,9 +2,9 @@ import "./App.css";
 import { Routes, Route } from "react-router";
 
 import BugHunter from "@/features/BugHunterGame/BugHunter.jsx";
-import RunningGame from "./features/RunningGame";
-import RhythmGame from "@/features/RhythmGame";
 import Home from "@/features/Home/Home";
+import Game from "@/features/RhythmGame";
+import RunningGame from "./features/RunningGame";
 
 function App() {
   return (
@@ -12,7 +12,7 @@ function App() {
       <Route element={<Home />} path="/" />
       <Route element={<BugHunter />} path="/BugHunter" />
       <Route element={<RunningGame />} path="/run" />
-      <Route element={<RhythmGame />} path="/rhythm" />
+      <Route element={<Game />} path="/rhythm" />
     </Routes>
   );
 }

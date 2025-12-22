@@ -1,148 +1,259 @@
-type Props = {
-  score: number;
-  combo: number;
-  bestCombo: number;
-  onRestart: () => void;
-  onSelectMusic: () => void;
-  onGoHome: () => void;
-};
+import { useEffect, useRef, useState } from "react";
+import styled, { keyframes, css } from "styled-components";
+import { useCharacter } from "@/hooks/useCharacter";
+import { useNavigate } from "react-router";
+import BackGround from "../assets/image/serverBack.png";
 
-export default function GameResultModal({
+// Props 타입 정의
+interface GameOverProps {
+  score: number;
+  bestCombo: number; // 리듬 게임은 콤보가 중요하므로 추가
+  onRestart: () => void;
+  onSelectMusic: () => void; // 곡 선택으로 돌아가기 기능 추가
+}
+
+// --- Animation & Styles (기존과 동일) ---
+
+const textFlicker = keyframes`
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; text-shadow: 0 0 5px #fff, 0 0 10px #4DEEEA, 0 0 20px #4DEEEA, 0 0 40px #0055FF, 0 0 80px #0055FF; }
+  20%, 24%, 55% { opacity: 0.1; text-shadow: none; }
+`;
+
+const borderPulse = keyframes`
+  0% { box-shadow: -4px 0 0 0 #4DEEEA, 4px 0 0 0 #4DEEEA, 0 -4px 0 0 #4DEEEA, 0 4px 0 0 #4DEEEA, 0 0 10px 0 rgba(0, 85, 255, 0.7); }
+  50% { box-shadow: -4px 0 0 0 #4DEEEA, 4px 0 0 0 #4DEEEA, 0 -4px 0 0 #4DEEEA, 0 4px 0 0 #4DEEEA, 0 0 40px 10px rgba(0, 85, 255, 0.9); }
+  100% { box-shadow: -4px 0 0 0 #4DEEEA, 4px 0 0 0 #4DEEEA, 0 -4px 0 0 #4DEEEA, 0 4px 0 0 #4DEEEA, 0 0 10px 0 rgba(0, 85, 255, 0.7); }
+`;
+
+const pixelBorderNeon = css`
+  position: relative;
+  background: rgba(0, 10, 20, 0.85); /* 가독성을 위해 배경을 조금 더 진하게 */
+  margin: 4px;
+  animation: ${borderPulse} 3s infinite ease-in-out;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    box-shadow:
+      -4px 0 0 0 #4deeea,
+      4px 0 0 0 #4deeea,
+      0 -4px 0 0 #4deeea,
+      0 4px 0 0 #4deeea;
+    z-index: -1;
+  }
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url(${BackGround});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* 리듬게임 요소들보다 위에 뜨도록 z-index 높임 */
+  font-family: "Galmuri11", sans-serif;
+  color: #fff;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 0;
+  }
+`;
+
+const ContentWrapper = styled.div`
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  max-height: 90vh;
+  width: 100%;
+  max-width: 600px;
+`;
+
+const Title = styled.h1`
+  font-size: 3rem;
+  margin: 0;
+  line-height: 1.2;
+  text-align: center;
+  color: #f0ffff;
+  animation: ${textFlicker} 4s infinite;
+`;
+
+const ResultBox = styled.div`
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  ${pixelBorderNeon}
+`;
+
+const ResultRow = styled.div<{ $isHighlight?: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2rem;
+  padding-bottom: 15px;
+  border-bottom: 2px dashed rgba(96, 255, 255, 0.3);
+  color: ${(props) => (props.$isHighlight ? "#FFD700" : "#fff")};
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .label {
+    color: #4deeea;
+    text-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+  }
+  .value {
+    font-size: 1.4rem;
+    text-shadow: 2px 2px 0 #000;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+`;
+
+const PixelButton = styled.button<{ $primary?: boolean }>`
+  font-family: "Galmuri11", sans-serif;
+  font-size: 1.1rem;
+  background: ${(props) =>
+    props.$primary ? "rgba(255, 107, 107, 0.1)" : "rgba(77, 238, 234, 0.1)"};
+  color: ${(props) => (props.$primary ? "#FF6B6B" : "#4DEEEA")};
+  border: 2px solid ${(props) => (props.$primary ? "#FF6B6B" : "#4DEEEA")};
+  padding: 15px 25px;
+  cursor: pointer;
+  position: relative;
+  box-shadow:
+    inset 0 0 10px
+      ${(props) =>
+        props.$primary
+          ? "rgba(255, 107, 107, 0.3)"
+          : "rgba(77, 238, 234, 0.3)"},
+    0 0 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 5px
+    ${(props) =>
+      props.$primary ? "rgba(255, 107, 107, 0.5)" : "rgba(77, 238, 234, 0.5)"};
+  transition: all 0.1s;
+  &:hover {
+    transform: translate(-2px, -2px);
+    background: ${(props) => (props.$primary ? "#FF6B6B" : "#4DEEEA")};
+    color: #000;
+    text-shadow: none;
+    box-shadow:
+      0 0 20px ${(props) => (props.$primary ? "#FF6B6B" : "#4DEEEA")},
+      4px 4px 0px 0px #000;
+  }
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+`;
+
+// --- Logic ---
+
+const GameResultModal = ({
   score,
   bestCombo,
   onRestart,
   onSelectMusic,
-  onGoHome,
-}: Props) {
+}: GameOverProps) => {
+  const navigate = useNavigate();
+  const { gainExp } = useCharacter();
+
+  const isProcessedRef = useRef(false);
+
+  // 예시: (점수 * 0.05) + (최대콤보 * 2)
+  const [resultState] = useState(() => {
+    const xpFromScore = Math.floor(score * 0.05);
+    const xpFromCombo = bestCombo * 2;
+    const totalGainedXp = xpFromScore + xpFromCombo;
+
+    return {
+      xp: totalGainedXp,
+    };
+  });
+
+  const [totalXp, setTotalXp] = useState(0);
+
+  useEffect(() => {
+    if (!isProcessedRef.current) {
+      // 1. 경험치 부여
+      gainExp(resultState.xp);
+
+      // 2. 화면에 보여줄 총 경험치 계산 (기존 + 획득)
+      const savedTotalXP = localStorage.getItem("exp");
+      const currentTotalXP = savedTotalXP ? parseInt(savedTotalXP, 10) : 0;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTotalXp(currentTotalXP);
+
+      isProcessedRef.current = true;
+    }
+  }, [resultState, gainExp]);
+
   return (
-    <div style={overlayStyle}>
-      <div style={modalStyle} className="game-result-box">
-        <h2 style={titleStyle}>SYSTEM CLEAR</h2>
+    <Overlay>
+      <ContentWrapper>
+        <Title>SESSION CLEAR</Title>
 
-        <div style={resultContainerStyle} className="score-report">
-          <div style={resultItemStyle} className="score-row">
-            <div style={resultLabelStyle}>Score</div>
-            <div style={resultValueStyle} className="score-value">
-              {score.toLocaleString()}
-            </div>
-          </div>
-          <div style={resultItemStyle} className="score-row">
-            <div style={resultLabelStyle}>Best Combo</div>
-            <div style={resultValueStyle} className="score-value">
-              {bestCombo}
-            </div>
-          </div>
-        </div>
+        <ResultBox>
+          <ResultRow>
+            <span className="label">FINAL SCORE</span>
+            <span className="value">{score.toLocaleString()} PTS</span>
+          </ResultRow>
 
-        <div style={buttonGroupStyle}>
-          <button
-            onClick={onRestart}
-            className="game-result-button"
-            style={buttonStyle}
-          >
-            Restart
-          </button>
-          <button
-            onClick={onSelectMusic}
-            className="game-result-button"
-            style={buttonStyle}
-          >
-            MUSIC SELECT
-          </button>
-          <button
-            onClick={onGoHome}
-            className="game-result-button"
-            style={buttonStyle}
-          >
-            HOME
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* Best Score 대신 Best Combo 표시 */}
+          <ResultRow $isHighlight={true}>
+            <span className="label">MAX COMBO</span>
+            <span className="value">{bestCombo} COMBO</span>
+          </ResultRow>
+
+          <ResultRow>
+            <span className="label">EXP GAINED</span>
+            <span
+              className="value"
+              style={{ color: "#0f0", textShadow: "0 0 10px #0f0" }}
+            >
+              +{resultState.xp.toLocaleString()} XP
+            </span>
+          </ResultRow>
+
+          <ResultRow>
+            <span className="label">TOTAL EXP</span>
+            <span className="value">{totalXp.toLocaleString()} XP</span>
+          </ResultRow>
+        </ResultBox>
+
+        <ButtonGroup>
+          <PixelButton onClick={onRestart}>RETRY</PixelButton>
+          <PixelButton onClick={onSelectMusic}>MUSIC SELECT</PixelButton>
+          <PixelButton $primary onClick={() => navigate("/")}>
+            EXIT TO HOME
+          </PixelButton>
+        </ButtonGroup>
+      </ContentWrapper>
+    </Overlay>
   );
-}
-
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  width: "100%",
-  height: "100vh",
-  backgroundColor: "#1a1a05",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  fontFamily: "'Courier New', Courier, monospace",
-  zIndex: 1000,
 };
 
-const modalStyle: React.CSSProperties = {
-  backgroundColor: "rgba(20, 20, 0, 0.9)",
-  border: "2px solid #ffcc00",
-  padding: "40px",
-  textAlign: "center",
-  boxShadow: "0 0 30px rgba(255, 204, 0, 0.4)",
-  maxWidth: "500px",
-  width: "90%",
-  animation: "shake 0.5s ease-out",
-};
-
-const titleStyle: React.CSSProperties = {
-  color: "#ffcc00",
-  fontSize: "3rem",
-  margin: "0 0 30px 0",
-  textShadow: "2px 2px 0px #554400",
-  letterSpacing: "-2px",
-  fontFamily: "inherit",
-};
-
-const resultContainerStyle: React.CSSProperties = {
-  borderTop: "1px dashed #ffcc00",
-  borderBottom: "1px dashed #ffcc00",
-  padding: "20px 0",
-  marginBottom: "20px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "10px",
-};
-
-const resultItemStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  color: "#fff",
-  fontSize: "1.2rem",
-  margin: "10px 0",
-};
-
-const resultLabelStyle: React.CSSProperties = {
-  fontSize: "1.2rem",
-  color: "#fff",
-  fontWeight: 600,
-};
-
-const resultValueStyle: React.CSSProperties = {
-  fontSize: "1.2rem",
-  fontWeight: "bold",
-  color: "#ffccaa",
-};
-
-const buttonGroupStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "12px",
-};
-
-const buttonStyle: React.CSSProperties = {
-  backgroundColor: "#ffcc00",
-  color: "#000",
-  border: "none",
-  padding: "15px 30px",
-  fontSize: "1.2rem",
-  fontWeight: "bold",
-  fontFamily: "inherit",
-  cursor: "pointer",
-  boxShadow: "0 0 15px rgba(255, 204, 0, 0.6)",
-  transition: "all 0.2s",
-};
+export default GameResultModal;

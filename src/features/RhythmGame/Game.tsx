@@ -820,11 +820,9 @@ export default function Game() {
       {showResultModal && (
         <GameResultModal
           score={score}
-          combo={combo}
           bestCombo={bestCombo}
           onRestart={restart}
           onSelectMusic={backToSelect}
-          onGoHome={goHome}
         />
       )}
 
@@ -985,6 +983,7 @@ const infoItemStyle: React.CSSProperties = {
 };
 
 const infoLabelStyle: React.CSSProperties = {
+  fontFamily: "Galmuri11",
   fontWeight: 700,
   color: "#ffffff",
   textShadow:
@@ -992,6 +991,7 @@ const infoLabelStyle: React.CSSProperties = {
 };
 
 const infoValueStyle: React.CSSProperties = {
+  fontFamily: "Galmuri11",
   fontWeight: 800,
   color: "#ffffff",
   textShadow:
