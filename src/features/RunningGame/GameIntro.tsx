@@ -251,29 +251,32 @@ const PixelButton = styled.button<{ $primary?: boolean }>`
   }
 `;
 
-const Footer = styled.div`
-  position: absolute;
-  bottom: 20px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-  z-index: 10;
-  text-align: center;
-`;
-
 // --- 3. Component ---
 
 const GameIntro = ({ onStart }: GameIntroProps) => {
+  // 초기값은 빈 배열
   const [records, setRecords] = useState<GameRecord[]>([]);
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
-    setRecords([
-      { score: 12500, date: "23.12.10" },
-      { score: 8900, date: "23.12.11" },
-      { score: 5400, date: "23.12.12" },
-      { score: 1200, date: "23.12.12" },
-      { score: 0, date: "-" },
-    ]);
+    // 1. 로컬 스토리지에서 데이터 가져오기
+    const savedRecordsJSON = localStorage.getItem("runningGameRecords");
+    
+    if (savedRecordsJSON) {
+      // 2. 데이터가 있으면 파싱해서 상태에 저장
+      try {
+        const parsedRecords = JSON.parse(savedRecordsJSON);
+        setRecords(parsedRecords);
+      } catch (e) {
+        console.error("랭킹 파싱 에러", e);
+        setRecords([]);
+      }
+    } else {
+      // 3. 데이터가 아예 없는 경우 (처음 실행 시)
+      // 빈 배열로 두거나, 원하시면 여기서 '기본 더미 데이터'를 로컬스토리지에 넣어줄 수도 있습니다.
+      // 일단은 깔끔하게 빈 상태로 둡니다.
+      setRecords([]); 
+    }
   }, []);
 
   return (
@@ -316,11 +319,8 @@ const GameIntro = ({ onStart }: GameIntroProps) => {
 
         {isHelpOpen && <GameHelpModal onClose={() => setIsHelpOpen(false)} />}
       </ContentWrapper>
-
-      <Footer>PRESS START BUTTON TO CONNECT SERVER...</Footer>
     </Container>
   );
 };
 
 export default GameIntro;
-
