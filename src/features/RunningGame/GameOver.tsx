@@ -4,10 +4,9 @@ import BackGround from "./assets/serverBack.png";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useNavigate } from "react-router";
 
-// Props 타입 정의
 interface GameOverProps {
   score: number;
-  onRestart: () => void;
+  onRestart: () => void; // 이름 변경: onGameOver -> onRestart (의미가 더 명확함)
 }
 
 // GameIntro와 거의 동일
@@ -233,9 +232,7 @@ const PixelButton = styled.button<{ $primary?: boolean }>`
 // --- 4. Logic & Component ---
 
 const GameOver = ({ score, onRestart }: GameOverProps) => {
-  // 최고 기록
-  const [bestScore, setBestScore] = useState<number>(0);
-  // 새로운 최고 기록
+  const [highScore, setHighScore] = useState<number>(0);
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   // 계산된 경험치
   const [gainedXp, setGainedXp] = useState<number>(0);
@@ -247,28 +244,19 @@ const GameOver = ({ score, onRestart }: GameOverProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 경험치 가중치 계산
-    const xp = Math.floor(score * 0.1);
-    setGainedXp(xp);
+    // 1. 로컬 스토리지에서 기존 최고 점수 가져오기
+    const savedScore = localStorage.getItem("runningGameBestScore");
+    const currentBest = savedScore ? parseInt(savedScore, 10) : 0;
 
-    // 최고 기록 가져오기
-    const savedBest = localStorage.getItem("runningGameBestScore");
-    const currentBest = savedBest ? parseInt(savedBest, 10) : 0;
-
-    // 최초 실행 시에만 새 기록 여부를 계산해 ref에 저장
-    // 이게 없으면 스트릭 모드 때문에 new 배지가 뜨지 않음
-    if (isNewRef.current === null) {
-      isNewRef.current = score > currentBest;
-    }
-
-    const isNew = Boolean(isNewRef.current);
-
-    if (isNew) {
-      setBestScore(score);
-      setIsNewRecord(true);
+    // 2. 신기록 갱신 체크
+    if (score > currentBest) {
       localStorage.setItem("runningGameBestScore", score.toString());
+      setHighScore(score);
+      setIsNewRecord(true);
+
+      // (선택) 여기에 신기록 달성 효과음 재생 로직 추가 가능
     } else {
-      setBestScore(currentBest);
+      setHighScore(currentBest);
       setIsNewRecord(false);
     }
 
@@ -284,22 +272,24 @@ const GameOver = ({ score, onRestart }: GameOverProps) => {
   }, [score]);
 
   return (
-    <Overlay>
-      <ContentWrapper>
-        <Title>SESSION TERMINATED</Title>
+    <div className="game-over-container">
+      <div className="error-box">
+        <h1 className="error-title">SYSTEM FAILURE</h1>
+        <p className="error-code">ERROR_CODE: 0xDEAD_BEEF</p>
 
-        <ResultBox>
-          <ResultRow>
-            <span className="label">FINAL SCORE</span>
-            <span className="value">{score.toLocaleString()} PTS</span>
-          </ResultRow>
-          <ResultRow>
-            <span className="label">EXP GAINED</span>
-            <span
-              className="value"
-              style={{ color: "#0f0", textShadow: "0 0 10px #0f0" }}
-            >
-              +{gainedXp.toLocaleString()} XP
+        <div className="score-report">
+          <div className="score-row">
+            <span>FINAL SCORE</span>
+            <span className="score-value">{score.toLocaleString()}</span>
+          </div>
+
+          <div
+            className={`score-row best-row ${isNewRecord ? "new-record" : ""}`}
+          >
+            <span>BEST SCORE</span>
+            <span className="score-value">
+              {highScore.toLocaleString()}
+              {isNewRecord && <span className="new-badge">NEW!</span>}
             </span>
           </ResultRow>
           <ResultRow>
